@@ -1,8 +1,8 @@
 build:
 	env GOOS=linux GOARCH=arm GOARM=5 go build
 
-deploy:
+sync:
 	rsync -r . pi:home
 
 run:
-	docker run --restart unless-stopped -d --device /dev/mem:/dev/mem --device /dev/gpiomem:/dev/gpiomem --network host home
+	docker run --name home --restart unless-stopped -d --device /dev/mem:/dev/mem --device /dev/gpiomem:/dev/gpiomem --network host home

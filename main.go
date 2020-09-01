@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"time"
+	"flag"
 	"net/http"
 	"strconv"
 
@@ -9,8 +11,16 @@ import (
 	"github.com/stianeikeland/go-rpio"
 )
 
+func selfTest() {
+
+}
 
 func main() {
+
+	bind := flag.String("bind", "127.0.0.1:8090", "bind address [host]:[port]")
+	selfTest := flag.Bool("self-test", false, "test gpio pins")
+	flag.Parse()
+
 	pins := [8]int{9, 10, 22, 27, 17, 4, 3, 2}
 	err := rpio.Open()
 	if err != nil {
@@ -19,7 +29,27 @@ func main() {
 
 	defer rpio.Close()
 
+	if *selfTest {
+		for _, pin := range pins {
+			pin := rpio.Pin(pin)
+			pin.Output()
+			pin.Low()
+			time.Sleep(500 * time.Millisecond)
+		}
+		for _, pin := range pins {
+			pin := rpio.Pin(pin)
+			pin.Output()
+			pin.High()
+			time.Sleep(500 * time.Millisecond)
+		}
+		return
+	}
+
 	e := echo.New()
+
+	e.GET("/ping", func(c echo.Context) error {
+		return c.String(http.StatusOK, "pong")
+	})
 
 	e.GET("/api/relay", func(c echo.Context) error {
 		action := c.QueryParam("action")
@@ -41,6 +71,6 @@ func main() {
 		return c.String(http.StatusBadRequest, "invalid action")
 	})
 
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(*bind))
 
 }
