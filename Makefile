@@ -1,6 +1,9 @@
 build:
 	env GOOS=linux GOARCH=arm GOARM=5 go build
 
+docker-build:
+	docker build -t home:latest .
+
 sync:
 	rsync -r . pi:home
 
