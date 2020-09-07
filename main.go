@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"time"
 	"flag"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/stianeikeland/go-rpio"
 )
 
@@ -24,7 +25,7 @@ func main() {
 	pins := [8]int{9, 10, 22, 27, 17, 4, 3, 2}
 	err := rpio.Open()
 	if err != nil {
-		panic(fmt.Sprint("unable to open gpio", err.Error()))
+		fmt.Println("ERROR: unable to open gpio:", err.Error())
 	}
 
 	defer rpio.Close()
@@ -46,6 +47,10 @@ func main() {
 	}
 
 	e := echo.New()
+	e.Use(middleware.Recover())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "[${time_rfc3339}] ${remote_ip} | ${method} ${uri} ${status} - ${latency_human}\n",
+	}))
 
 	e.GET("/ping", func(c echo.Context) error {
 		return c.String(http.StatusOK, "pong")
