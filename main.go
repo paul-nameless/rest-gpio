@@ -22,7 +22,7 @@ func main() {
 	selfTest := flag.Bool("self-test", false, "test gpio pins")
 	flag.Parse()
 
-	pins := [...]int{9, 10, 22, 27, 17, 4, 3, 2}
+	pins := []int{9, 10, 22, 27, 17, 4, 3, 2}
 	err := rpio.Open()
 	if err != nil {
 		fmt.Println("ERROR: unable to open gpio:", err.Error())
