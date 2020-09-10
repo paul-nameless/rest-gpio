@@ -4,17 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"log"
 	"strconv"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/stianeikeland/go-rpio"
 )
-
-func selfTest() {
-
-}
 
 func main() {
 
@@ -25,7 +20,7 @@ func main() {
 	pins := []int{9, 10, 22, 27, 17, 4, 3, 2}
 	err := rpio.Open()
 	if err != nil {
-		fmt.Println("ERROR: unable to open gpio:", err.Error())
+		log.Printf("ERROR: Unable to open gpio: %s", err)
 	}
 
 	defer rpio.Close()
@@ -46,21 +41,18 @@ func main() {
 		return
 	}
 
-	e := echo.New()
-	e.Use(middleware.Recover())
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "[${time_rfc3339}] ${remote_ip} | ${method} ${uri} ${status} - ${latency_human}\n",
-	}))
-
-	e.GET("/ping", func(c echo.Context) error {
-		return c.String(http.StatusOK, "pong")
+	http.HandleFunc("/ping", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "pong\n")
 	})
 
-	e.GET("/api/relay", func(c echo.Context) error {
-		action := c.QueryParam("action")
-		relay, err := strconv.Atoi(c.QueryParam("relay"))
+
+	http.HandleFunc("/api/relay", func(w http.ResponseWriter, req *http.Request) {
+		query := req.URL.Query()
+		action := query.Get("action")
+		relay, err := strconv.Atoi(query.Get("relay"))
 		if err != nil || relay >= len(pins) {
-			return c.String(http.StatusBadRequest, "invalid relay")
+			fmt.Fprintf(w, "invalid relay\n")
+			return
 		}
 
 		pin := rpio.Pin(pins[relay])
@@ -68,14 +60,20 @@ func main() {
 
 		if action == "on" {
 			pin.Low()
-			return c.String(http.StatusOK, "on")
+			fmt.Fprintf(w, "on\n")
+			return
 		} else if action == "off" {
 			pin.High()
-			return c.String(http.StatusOK, "off")
+			fmt.Fprintf(w, "off\n")
+			return
 		}
-		return c.String(http.StatusBadRequest, "invalid action")
+		fmt.Fprintf(w, "invalid action\n")
 	})
 
-	e.Logger.Fatal(e.Start(*bind))
+	log.Printf("INFO: Listening on: %s", *bind)
+	err = http.ListenAndServe(*bind, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 
 }
